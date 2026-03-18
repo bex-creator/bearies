@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexusStore</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['system-ui', '-apple-system', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style>
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 4px; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    
+    @keyframes zoomIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .animate-zoom-in { animation: zoomIn 0.3s ease-out forwards; }
+  </style>
+</head>
+<body class="bg-[#f4f4f6] dark:bg-slate-950 text-slate-900 dark:text-slate-200 transition-colors duration-300 min-h-screen font-sans selection:bg-indigo-500 selection:text-white">
+
+  <!-- APP ROOT -->
+  <div id="app-root">
+
+  <!-- Header -->
+  <header class="fixed top-0 inset-x-0 z-40 backdrop-blur-xl border-b shadow-[0_4px_30px_rgba(0,0,0,0.03)] bg-white/70 border-black/5 dark:bg-slate-950/70 dark:border-white/5 transition-colors duration-300">
+    <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-6">
+      <div class="flex items-center gap-3 cursor-pointer group" onclick="navigate('home')">
+        <div class="w-12 h-12 bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 group-hover:scale-105 group-hover:rotate-3 transition-all duration-300">
+          <i class="ph-fill ph-play text-2xl ml-1"></i>
+        </div>
+        <span class="text-2xl font-black tracking-tighter hidden sm:block bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+          Nexus<span class="text-indigo-500">Store</span>
+        </span>
+      </div>
+
+      <div id="search-container" class="flex-1 max-w-2xl relative group transition-opacity">
+        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <i class="ph ph-magnifying-glass text-slate-400 group-focus-within:text-indigo-500 transition-colors text-xl"></i>
+        </div>
+        <input type="text" id="search-input" placeholder="Search apps, games, and more..." class="w-full border-2 rounded-2xl py-3 pl-12 pr-4 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none font-medium bg-slate-100/80 border-transparent text-slate-800 placeholder-slate-400 focus:bg-white dark:bg-slate-900 dark:border-slate-800 dark:text-white dark:placeholder-slate-500 dark:focus:bg-slate-800" />
+      </div>
+
+      <div class="flex items-center gap-4">
+        <div id="user-profile" class="hidden items-center gap-3 pr-4 border-r border-slate-200 dark:border-slate-700">
+          <img id="user-avatar" src="" class="w-9 h-9 rounded-full object-cover border-2 border-indigo-500 shadow-sm" />
+          <span id="user-name" class="font-bold text-sm text-slate-700 dark:text-slate-200 hidden sm:block"></span>
+        </div>
+        <button id="theme-toggle" class="p-2.5 rounded-xl transition-colors bg-white text-slate-600 shadow-sm hover:shadow-md border border-slate-200 dark:bg-slate-800 dark:text-yellow-400 dark:hover:bg-slate-700 dark:border-transparent" title="Toggle Dark Mode">
+          <i class="ph ph-sun text-xl dark:hidden"></i>
+          <i class="ph ph-moon text-xl hidden dark:block"></i>
+        </button>
+        <button onclick="navigate('upload')" class="flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-0.5 active:translate-y-0 bg-indigo-600 hover:bg-indigo-500 text-white">
+          <i class="ph ph-plus text-xl font-bold"></i>
+          <span class="hidden sm:inline">Publish</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-28 min-h-screen">
+    
+    <!-- HOME VIEW -->
+    <div id="view-home" class="view-section block animate-fade-in">
+      <div id="home-empty" class="hidden flex-col items-center justify-center py-32 text-center animate-fade-in">
+        <div class="w-24 h-24 rounded-full flex items-center justify-center mb-6 bg-slate-200 dark:bg-slate-800">
+          <i class="ph ph-magnifying-glass text-4xl text-slate-400"></i>
+        </div>
+        <h2 class="text-3xl font-bold mb-2 text-slate-800 dark:text-white">No results found</h2>
+        <p class="text-slate-500 text-lg max-w-md">We couldn't find anything matching your search.</p>
+      </div>
+
+      <section id="home-picks" class="mb-16 hidden">
+        <div class="flex items-center gap-3 mb-6">
+          <i class="ph ph-calendar text-indigo-500 text-2xl font-bold"></i>
+          <h2 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Today's Picks</h2>
+        </div>
+        <div id="picks-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+      </section>
+
+      <section id="home-grid-section" class="hidden">
+        <div class="flex items-center gap-3 mb-8">
+          <i class="ph ph-stack text-indigo-500 text-2xl font-bold"></i>
+          <h2 id="grid-title" class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Trending Now</h2>
+        </div>
+        <div id="grid-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8"></div>
+      </section>
+    </div>
+
+    <!-- DETAILS VIEW -->
+    <div id="view-details" class="view-section hidden animate-fade-in"></div>
+
+    <!-- UPLOAD VIEW -->
+    <div id="view-upload" class="view-section hidden animate-zoom-in">
+      <div class="max-w-4xl mx-auto rounded-[3rem] shadow-[0_20px_60px_rgba(0,0,0,0.05)] border overflow-hidden bg-white border-slate-100 dark:bg-slate-900 dark:border-slate-800">
+        <div class="relative bg-slate-950 p-12 text-center overflow-hidden">
+          <div class="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_120%,#6366f1,#000000)]"></div>
+          <button type="button" onclick="navigate('home')" class="absolute top-6 left-6 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full backdrop-blur-md transition-all">
+            <i class="ph ph-x text-2xl"></i>
+          </button>
+          <div class="relative z-10 flex flex-col items-center">
+            <div class="bg-gradient-to-br from-indigo-500 to-purple-600 w-20 h-20 rounded-[1.5rem] flex items-center justify-center mb-6 shadow-xl shadow-indigo-500/20 rotate-3">
+              <i class="ph ph-cloud-arrow-up text-4xl text-white"></i>
+            </div>
+            <h1 id="upload-title" class="text-4xl font-black text-white mb-3 tracking-tight">Publish to NexusStore</h1>
+            <p class="text-indigo-200 text-lg font-medium max-w-lg">Share your creations with the world. Upload standard code payloads or link directly to web apps.</p>
+          </div>
+        </div>
+
+        <form id="upload-form" class="p-8 sm:p-12 space-y-10">
+          <div>
+            <h3 class="text-2xl font-black mb-6 tracking-tight text-slate-900 dark:text-white">1. Basic Info</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label class="block text-sm font-bold mb-2 uppercase tracking-wide text-slate-700 dark:text-slate-400">App Name</label>
+                <input required id="app-title" type="text" class="w-full border-2 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-medium text-lg bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:placeholder-slate-500 dark:focus:bg-slate-800" placeholder="e.g. Flappy Bird clone">
+              </div>
+              <div>
+                <label class="block text-sm font-bold mb-2 uppercase tracking-wide text-slate-700 dark:text-slate-400">Developer</label>
+                <input required id="app-developer" type="text" class="w-full border-2 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-medium text-lg bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:placeholder-slate-500 dark:focus:bg-slate-800" placeholder="Your name or studio">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
+              <div>
+                <label class="block text-sm font-bold mb-2 uppercase tracking-wide text-slate-700 dark:text-slate-400">Category</label>
+                <div class="relative">
+                  <select id="app-category" class="appearance-none w-full border-2 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-medium text-lg bg-slate-50 border-slate-200 text-slate-900 focus:bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:focus:bg-slate-800">
+                    <option>Games</option>
+                    <option>Productivity</option>
+                    <option>Education</option>
+                    <option>Social</option>
+                    <option>Utilities</option>
+                    <option>AI Tool</option>
+                    <option>Video</option>
+                    <option>Editor</option>
+                    <option>Arcade</option>
+                    <option>Strategy</option>
+                    <option>Survival</option>
+                    <option>Sim</option>
+                    <option>Racing</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-6 text-slate-400">
+                    <i class="ph ph-caret-down"></i>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-bold mb-2 uppercase tracking-wide text-slate-700 dark:text-slate-400">Visibility</label>
+                <div class="relative">
+                  <select id="app-visibility" class="appearance-none w-full border-2 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-medium text-lg bg-slate-50 border-slate-200 text-slate-900 focus:bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:focus:bg-slate-800">
+                    <option value="public">Public (Everyone can see)</option>
+                    <option value="private">Private (Only you can see)</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-6 text-slate-400">
+                    <i class="ph ph-caret-down"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-6">
+              <label class="block text-sm font-bold mb-2 uppercase tracking-wide text-slate-700 dark:text-slate-400">Description</label>
+              <textarea required id="app-description" rows="4" class="resize-y w-full border-2 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-medium text-lg bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:placeholder-slate-500 dark:focus:bg-slate-800" placeholder="Tell users what makes your app awesome..."></textarea>
+            </div>
+          </div>
+
+          <hr class="border-slate-100 dark:border-slate-800" />
+
+          <div>
+            <h3 class="text-2xl font-black mb-6 tracking-tight text-slate-900 dark:text-white">2. Media Assets</h3>
+            <div class="flex flex-col md:flex-row gap-8">
+              <div class="flex flex-col items-start gap-3 w-full md:w-auto">
+                <label class="block text-sm font-bold mb-2 uppercase tracking-wide text-slate-700 dark:text-slate-400">App Icon</label>
+                <div class="relative w-40 h-40 border-2 border-dashed rounded-[2rem] flex items-center justify-center overflow-hidden transition-all cursor-pointer group shadow-sm hover:shadow-md hover:border-indigo-400 bg-slate-50 border-slate-300 dark:bg-slate-800 dark:border-slate-700">
+                  <input type="file" accept="image/*" id="app-icon-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                  <img id="icon-preview" class="w-full h-full object-cover hidden group-hover:scale-105 transition-transform duration-300" />
+                  <div id="icon-placeholder" class="text-center text-slate-400 group-hover:text-indigo-500 transition-colors">
+                    <i class="ph ph-plus text-3xl mx-auto mb-2 block"></i>
+                    <span class="text-sm font-bold">Upload</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex-1 overflow-hidden">
+                <label class="block text-sm font-bold mb-2 uppercase tracking-wide text-slate-700 dark:text-slate-400">Screenshots (Up to 3)</label>
+                <div class="relative border-2 border-dashed rounded-[2rem] p-6 flex flex-col items-center justify-center transition-all min-h-[160px] cursor-pointer group shadow-sm hover:shadow-md hover:border-indigo-400 bg-slate-50 border-slate-300 dark:bg-slate-800 dark:border-slate-700">
+                  <input type="file" accept="image/*" multiple id="app-screenshots-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                  <div id="screenshots-preview" class="flex gap-4 w-full overflow-x-auto z-20 pointer-events-none pb-2 hidden"></div>
+                  <div id="screenshots-placeholder" class="text-center text-slate-400 group-hover:text-indigo-500 transition-colors">
+                    <i class="ph ph-image text-4xl mx-auto mb-3 opacity-60 block"></i>
+                    <p class="text-base font-bold">Click or drag images here</p>
+                    <p class="text-sm font-medium opacity-70 mt-1">16:9 recommended</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="border-slate-100 dark:border-slate-800" />
+
+          <div>
+            <h3 class="text-2xl font-black mb-6 tracking-tight text-slate-900 dark:text-white">3. App Payload</h3>
+            
+            <div class="flex p-1.5 rounded-2xl w-fit mb-8 shadow-inner bg-slate-100 dark:bg-slate-800">
+              <button type="button" id="btn-payload-code" class="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md transform scale-100 bg-white text-slate-900 dark:bg-slate-700 dark:text-white">
+                <i class="ph ph-code text-lg"></i> Hosted Code
+              </button>
+              <button type="button" id="btn-payload-url" class="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all scale-95 text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700/50">
+                <i class="ph ph-link text-lg"></i> External Link
+              </button>
+            </div>
+
+            <div id="payload-code-container" class="bg-slate-950 rounded-[2rem] p-2 shadow-2xl overflow-hidden ring-1 ring-white/10 focus-within:ring-2 focus-within:ring-indigo-500 transition-all animate-fade-in block">
+              <div class="flex items-center gap-2 px-4 py-3 border-b border-white/10 text-slate-400 font-mono text-xs uppercase tracking-wider font-bold">
+                <i class="ph ph-code"></i> index.html (Runs in Sandboxed App Player)
+              </div>
+              <textarea id="app-code" class="w-full bg-slate-950 text-slate-300 font-mono text-sm p-6 outline-none resize-y min-h-[300px] leading-relaxed custom-scrollbar" spellcheck="false">&lt;!-- Write your HTML/CSS/JS app here --&gt;
+&lt;style&gt;
+  body { font-family: sans-serif; display: grid; place-items: center; height: 100vh; margin: 0; background: #f0f0f0; }
+  h1 { color: #333; }
+&lt;/style&gt;
+&lt;body&gt;
+  &lt;h1&gt;Hello World Apps!&lt;/h1&gt;
+&lt;/body&gt;</textarea>
+            </div>
+
+            <div id="payload-url-container" class="p-8 rounded-[2rem] border-2 bg-blue-50/50 border-blue-100 dark:bg-blue-950/20 dark:border-blue-900/50 animate-fade-in hidden">
+              <div class="flex items-start gap-4 mb-6">
+                <div class="p-3 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
+                  <i class="ph ph-globe text-2xl"></i>
+                </div>
+                <div>
+                  <h4 class="text-lg font-bold mb-1 text-slate-900 dark:text-white">Link to Web App</h4>
+                  <p class="font-medium text-slate-600 dark:text-slate-400">When users launch your app, they will be redirected to this secure URL in a new tab.</p>
+                </div>
+              </div>
+              <input type="url" id="app-url" class="w-full border-2 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium text-lg bg-white border-slate-200 text-slate-900 placeholder-slate-400 dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:placeholder-slate-500" placeholder="https://your-web-app.com">
+            </div>
+          </div>
+
+          <div class="pt-8 mt-8 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-4">
+            <button type="button" onclick="navigate('home')" class="px-8 py-4 rounded-2xl font-bold transition-all duration-300 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white">Cancel</button>
+            <button type="submit" id="btn-submit" class="bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white px-10 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-xl shadow-indigo-500/30 hover:-translate-y-1 active:translate-y-0 flex items-center gap-2">
+              <i class="ph-fill ph-lightning text-xl"></i> Publish App
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ADMIN VIEW -->
+    <div id="view-admin" class="view-section hidden animate-zoom-in">
+      <div class="max-w-6xl mx-auto pb-20">
+        <div class="flex items-center justify-between mb-8">
+          <h2 class="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+            <i class="ph-fill ph-shield-check text-indigo-500 text-4xl"></i> Admin Control Panel
+          </h2>
+          <button onclick="navigate('home')" class="px-6 py-3 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 font-bold hover:shadow-md transition-all">Exit Admin</button>
+        </div>
+        <div class="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-sm uppercase tracking-wider">
+                  <th class="p-6 font-bold">App Name</th>
+                  <th class="p-6 font-bold">Developer</th>
+                  <th class="p-6 font-bold">Type</th>
+                  <th class="p-6 font-bold">Visibility</th>
+                  <th class="p-6 font-bold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-apps-list" class="divide-y divide-slate-100 dark:divide-slate-800/50">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+  
+  </div> <!-- END APP ROOT -->
+
+  <!-- APP PLAYER OVERLAY -->
+  <div id="view-player" class="fixed inset-0 z-[100] bg-slate-950 hidden flex-col transition-opacity duration-300 opacity-0">
+    <div class="h-14 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 flex-shrink-0">
+      <div class="flex items-center gap-4">
+        <button onclick="closeAppPlayer()" class="text-slate-400 hover:text-white flex items-center gap-2 font-bold px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors">
+          <i class="ph-bold ph-caret-left text-lg"></i> Back to Store
+        </button>
+        <div class="w-px h-6 bg-slate-700"></div>
+        <span id="player-app-title" class="text-white font-bold tracking-wide">App Title</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-bold bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded-md border border-indigo-500/30 flex items-center gap-1">
+          <i class="ph-fill ph-shield-check"></i> Sandboxed
+        </span>
+        <button onclick="expandAppPlayer()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors" title="Open in new tab">
+          <i class="ph-bold ph-arrow-square-out text-lg"></i>
+        </button>
+      </div>
+    </div>
+    <div class="flex-1 w-full bg-white dark:bg-slate-950 relative">
+      <!-- Strict sandbox constraints (no allow-same-origin) perfectly isolates the app from Firebase/Parent -->
+      <iframe id="app-iframe" class="absolute inset-0 w-full h-full border-none bg-white" sandbox="allow-scripts allow-pointer-lock allow-forms"></iframe>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, query, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    let db = null;
+    let auth = null;
+    let currentUser = null;
+    const appId = typeof window.__app_id !== 'undefined' && window.__app_id ? window.__app_id : (typeof __app_id !== 'undefined' && __app_id ? __app_id : 'default-app-id');
+
+    // GitHub Pages / Static Hosting Resilience check
+    try {
+      let firebaseConfig = null;
+      if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+        firebaseConfig = JSON.parse(__firebase_config);
+      }
+
+      if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
+        const app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+
+        const initAuth = async () => {
+          try {
+            const token = typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token ? window.__initial_auth_token : (typeof __initial_auth_token !== 'undefined' && __initial_auth_token ? __initial_auth_token : null);
+            if (token) {
+              try {
+                await signInWithCustomToken(auth, token);
+              } catch (tokenErr) {
+                console.warn("Custom token invalid. Falling back to anonymous.", tokenErr);
+                await signInAnonymously(auth);
+              }
+            } else {
+              await signInAnonymously(auth);
+            }
+          } catch (err) {
+            console.error("Auth Error:", err);
+          }
+        };
+        initAuth();
+
+        onAuthStateChanged(auth, (user) => {
+          currentUser = user;
+
+          if (user && !user.isAnonymous) {
+            const profileEl = document.getElementById('user-profile');
+            if (profileEl) {
+              profileEl.classList.remove('hidden');
+              profileEl.classList.add('flex');
+              if (user.photoURL) document.getElementById('user-avatar').src = user.photoURL;
+              if (user.displayName) document.getElementById('user-name').textContent = user.displayName;
+            }
+          }
+
+          if (user && db) {
+            const appsRef = collection(db, 'artifacts', appId, 'public', 'data', 'uploaded_apps');
+            const q = query(appsRef);
+            onSnapshot(q, (snapshot) => {
+              const fetchedApps = snapshot.docs.map(doc => {
+                const d = doc.data();
+                if (d.visibility === 'private' && (!currentUser || d.authorId !== currentUser.uid)) return null;
+                return {
+                  id: doc.id,
+                  title: d.title || 'Untitled App',
+                  developer: d.developer || 'Unknown',
+                  category: d.category || 'App',
+                  description: d.description || '',
+                  rating: d.rating || '0.0',
+                  reviews: d.reviews || '0',
+                  size: d.size || 'Unknown',
+                  price: d.price || 'Free',
+                  payloadType: d.payloadType || 'url',
+                  appUrl: d.appUrl || null,
+                  code: d.code || null,
+                  icon: d.icon || null,
+                  bgClass: d.bgClass || 'bg-gradient-to-br from-slate-600 to-slate-800',
+                  iconClass: d.iconClass || 'ph-fill ph-app-window',
+                  screenshots: d.screenshots || [],
+                  createdAt: d.createdAt || 0,
+                  authorId: d.authorId || null,
+                  visibility: d.visibility || 'public'
+                };
+              }).filter(a => a !== null);
+              
+              fetchedApps.sort((a, b) => b.createdAt - a.createdAt);
+              // When Firebase is active, merge DB apps with default apps
+              apps = [...fetchedApps, ...defaultApps];
+              
+              if (currentView === 'home') renderHome();
+            }, (error) => console.error("Firestore error:", error));
+          }
+        });
+      } else {
+        console.warn("No Firebase config found. Running App Store in strictly local/GitHub Pages mode.");
+      }
+    } catch (e) {
+      console.warn("Firebase could not initialize. Running App Store in strictly local/GitHub Pages mode.", e);
+    }
+
+    // --- STATE & DATA ---
+    const defaultApps = [
+      {
+        id: 'nexus-docs',
+        title: 'Nexus Docs',
+        developer: 'Nexus Corporation',
+        category: 'Editor',
+        description: 'Real-time P2P collaborative editor.',
+        rating: '5.0',
+        reviews: '12K',
+        size: '2 MB',
+        price: 'Free',
+        payloadType: 'code',
+        code: '<!DOCTYPE html><html><head><title>Nexus Docs</title><style>body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f4f4f6; color: #333; } .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; max-width: 500px; } textarea { width: 100%; height: 200px; margin-top: 20px; border-radius: 10px; border: 1px solid #ddd; padding: 15px; outline: none; }</style></head><body><div class="card"><h2>Nexus Docs</h2><p>Real-time P2P collaboration environment initialized.</p><textarea placeholder="Start typing..."></textarea></div></body></html>',
+        icon: null,
+        bgClass: 'bg-gradient-to-br from-slate-400 to-slate-600',
+        iconClass: 'ph-fill ph-file-text',
+        screenshots: []
+      },
+      {
+        id: 'youtube',
+        title: 'YouTube',
+        developer: 'Google LLC',
+        category: 'Video',
+        description: "The world's largest video sharing platform.",
+        rating: '4.9',
+        reviews: '135M',
+        size: 'Link',
+        price: 'Free',
+        payloadType: 'url',
+        appUrl: 'https://www.youtube.com/',
+        icon: null,
+        bgClass: 'bg-gradient-to-br from-red-500 to-red-700',
+        iconClass: 'ph-fill ph-youtube-logo',
+        screenshots: []
+      },
+      {
+        id: 'google-gemini',
+        title: 'Google Gemini',
+        developer: 'Google LLC',
+        category: 'AI Tool',
+        description: 'Next-generation AI for brainstorming, writing, and analysis.',
+        rating: '4.8',
+        reviews: '8M',
+        size: 'Link',
+        price: 'Free',
+        payloadType: 'url',
+        appUrl: 'https://gemini.google.com/app',
+        icon: null,
+        bgClass: 'bg-gradient-to-br from-blue-500 to-blue-700',
+        iconClass: 'ph-fill ph-sparkle',
+        screenshots: []
+      },
+      {
+        id: 'focus-flow',
+        title: 'Focus Flow',
+        developer: 'Indie Devs',
+        category: 'Productivity',
+        description: 'A minimal Pomodoro timer and task manager designed to keep you in the zone.',
+        rating: '4.7',
+        reviews: '142K',
+        size: 'Link',
+        price: 'Free',
+        payloadType: 'url',
+        appUrl: 'https://sites.google.com/students.cumberlandschools.org/focusflow/home',
+        icon: null,
+        bgClass: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
+        iconClass: 'ph-fill ph-timer',
+        screenshots: []
+      },
+      {
+        id: 'chat-space',
+        title: 'Chat Space',
+        developer: 'SocialNet Inc',
+        category: 'Social',
+        description: 'Minimal social space to chat, hang out, and connect with your friends.',
+        rating: '4.1',
+        reviews: '890K',
+        size: 'Link',
+        price: 'Free',
+        payloadType: 'url',
+        appUrl: 'https://chatspace1.w3spaces.com/',
+        icon: null,
+        bgClass: 'bg-gradient-to-br from-blue-400 to-blue-600',
+        iconClass: 'ph-fill ph-chat-circle',
+        screenshots: []
+      },
+      {
+        id: 'shape-shooters',
+        title: 'Shape Shooters',
+        developer: 'Retro Games Studio',
+        category: 'Arcade',
+        description: 'Fast-paced arcade action. Dodge, shoot, and survive the geometric onslaught.',
+        rating: '4.6',
+        reviews: '25K',
+        size: 'Link',
+        price: 'Free',
+        payloadType: 'url',
+        appUrl: 'https://shape-shooters.w3spaces.com/saved-from-Tryit-2025-12-02.html',
+        icon: null,
+        bgClass: 'bg-gradient-to-br from-purple-500 to-purple-700',
+        iconClass: 'ph-fill ph-target',
+        screenshots: []
+      },
+      {
+       
+        id: 'neon-defense',
+        title: 'Neon Defense',
+        developer: 'Tactical Mind',
+        category: 'Strategy',
+        description: 'Strategic tower defense with a beautiful neon cyberpunk aesthetic.',
+        rating: '4.3',
+        reviews: '12K',
+        size: 'Link',
+        price: 'Free',
+        payloadType: 'url',
+        appUrl: 'https://sites.google.com/students.cumberlandschools.org/ugrughrogygrhreleoh/home',
+        icon: null,
+        bgClass: 'bg-gradient-to-br from-lime-400 to-lime-600',
+        iconClass: 'ph-fill ph-shield-check',
+        screenshots: []
+      },
+      {
+      
+        id: 'doodle-jump',
+        title: 'Doodle Jump',
+        developer: 'Lima Sky',
+        category: 'Game',
+        description: 'Endless platformer fun. Jump as high as you can on the notebook paper!',
+        rating: '4.7',
+        reviews: '2.4M',
+        size: 'Link',
+        price: 'Free',
+        payloadType: 'url',
+        appUrl: 'https://sites.google.com/students.cumberlandschools.org/doodlejump/home',
+        icon: null,
+        bgClass: 'bg-gradient-to-br from-green-500 to-green-700',
+        iconClass: 'ph-fill ph-arrow-fat-up',
+        screenshots: []
+      },
+      {
+        id: 'oasis',
+        title: 'Oasis',
+        developer: 'Arcade Classics',
+        category: 'Arcade',
+        description: 'A massive collection of retro arcade games wrapped in a synthwave wrapper.',
+        rating: '4.8',
+        reviews: '55K',
+        size: 'Link',
+        price: 'Free',
+        payloadType: 'url',
+        appUrl: 'https://sites.google.com/view/oasisarcade',
+        icon: null,
+        bgClass: 'bg-gradient-to-br from-orange-400 to-orange-600',
+        iconClass: 'ph-fill ph-palm-tree',
+        screenshots: []
+      },
+      {
+        id: 'tiny-polis',
+        title: 'Tiny Polis',
+        developer: 'Simulacra Games',
+        category: 'Sim',
+        description: 'Micro world simulation. Build, manage, and watch your tiny city grow.',
+        rating: '4.3',
+        reviews: '18K',
+        size: 'Link',
+        price: 'Free',
+        payloadType: 'url',
+        appUrl: 'https://sites.google.com/students.cumberlandschools.org/tiny-polis/home',
+        icon: null,
+        bgClass: 'bg-gradient-to-br from-yellow-400 to-yellow-600',
+        iconClass: 'ph-fill ph-buildings',
+        screenshots: []
+      },
+      {
+        id: 'neon-racer',
+        title: 'Neon Racer',
+        developer: 'Velocity Inc',
+        category: 'Racing',
+        description: 'High velocity racing through cybernetic cityscapes.',
+        rating: '4.5',
+        reviews: '88K',
+        size: 'Link',
+        price: 'Free',
+        payloadType: 'url',
+        appUrl: 'https://sites.google.com/students.cumberlandschools.org/neon-racer/home',
+        icon: null,
+        bgClass: 'bg-gradient-to-br from-pink-500 to-pink-700',
+        iconClass: 'ph-fill ph-car-profile',
+        screenshots: []
+      }
+    ];
+    
+    let apps = [...defaultApps];
+    let installedApps = new Set();
+    let currentView = 'home';
+    let searchQuery = '';
+    let selectedAppId = null;
+    let payloadType = 'code';
+    let editingAppId = null;
+
+    let iconPreviewBase64 = null;
+    let screenshotsBase64 = [];
+
+    // --- ELEMENTS ---
+    const views = {
+      home: document.getElementById('view-home'),
+      details: document.getElementById('view-details'),
+      upload: document.getElementById('view-upload'),
+      admin: document.getElementById('view-admin')
+    };
+    const searchContainer = document.getElementById('search-container');
+    const searchInput = document.getElementById('search-input');
+    
+    // --- APP LOGIC ---
+    window.navigate = function(viewName, appId = null) {
+      currentView = viewName;
+      selectedAppId = appId;
+      
+      Object.keys(views).forEach(key => {
+        if (key === viewName) {
+          views[key].classList.remove('hidden');
+          views[key].classList.add('block');
+        } else {
+          views[key].classList.remove('block');
+          views[key].classList.add('hidden');
+        }
+      });
+
+      if (viewName === 'home') {
+        searchContainer.classList.remove('hidden');
+        renderHome();
+      } else {
+        searchContainer.classList.add('hidden');
+        if (viewName === 'details' && appId) {
+          renderDetails(appId);
+        } else if (viewName === 'admin') {
+          renderAdmin();
+        } else if (viewName === 'upload') {
+          if (appId) {
+            editingAppId = appId;
+            const app = apps.find(a => a.id === appId);
+            document.getElementById('upload-title').textContent = 'Edit App';
+            document.getElementById('btn-submit').innerHTML = '<i class="ph-fill ph-floppy-disk text-xl"></i> Save Changes';
+            
+            document.getElementById('app-title').value = app.title;
+            document.getElementById('app-developer').value = app.developer;
+            document.getElementById('app-category').value = app.category;
+            document.getElementById('app-visibility').value = app.visibility || 'public';
+            document.getElementById('app-description').value = app.description;
+            
+            payloadType = app.payloadType;
+            if (payloadType === 'url') {
+              document.getElementById('app-url').value = app.appUrl || '';
+            } else {
+              document.getElementById('app-code').value = app.code || '';
+            }
+            updatePayloadToggleUI();
+
+            iconPreviewBase64 = app.icon;
+            if (iconPreviewBase64) {
+              document.getElementById('icon-preview').src = iconPreviewBase64;
+              document.getElementById('icon-preview').classList.remove('hidden');
+              document.getElementById('icon-placeholder').classList.add('hidden');
+            }
+            
+            screenshotsBase64 = app.screenshots || [];
+            if (screenshotsBase64.length > 0) {
+              const previewContainer = document.getElementById('screenshots-preview');
+              previewContainer.innerHTML = screenshotsBase64.map(src => 
+                `<img src="${src}" class="h-32 w-auto rounded-2xl object-cover shadow-md border border-slate-200 dark:border-slate-700" />`
+              ).join('');
+              previewContainer.classList.remove('hidden');
+              document.getElementById('screenshots-placeholder').classList.add('hidden');
+            }
+          } else {
+            editingAppId = null;
+            document.getElementById('upload-title').textContent = 'Publish to NexusStore';
+            document.getElementById('btn-submit').innerHTML = '<i class="ph-fill ph-lightning text-xl"></i> Publish App';
+            document.getElementById('upload-form').reset();
+            iconPreviewBase64 = null;
+            screenshotsBase64 = [];
+            document.getElementById('icon-preview').classList.add('hidden');
+            document.getElementById('icon-placeholder').classList.remove('hidden');
+            document.getElementById('screenshots-preview').classList.add('hidden');
+            document.getElementById('screenshots-placeholder').classList.remove('hidden');
+            payloadType = 'code';
+            updatePayloadToggleUI();
+          }
+        }
+      }
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      renderHome();
+    });
+
+    function renderHome() {
+      const filtered = apps.filter(app => {
+        const titleMatch = (app.title || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const devMatch = (app.developer || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const catMatch = (app.category || '').toLowerCase().includes(searchQuery.toLowerCase());
+        return titleMatch || devMatch || catMatch;
+      });
+
+      const emptyState = document.getElementById('home-empty');
+      const picksSection = document.getElementById('home-picks');
+      const gridSection = document.getElementById('home-grid-section');
+      
+      if (filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+        emptyState.classList.add('flex');
+        picksSection.classList.add('hidden');
+        gridSection.classList.add('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      emptyState.classList.remove('flex');
+      gridSection.classList.remove('hidden');
+
+      const todaysPicks = filtered.slice(0, 2);
+      if (!searchQuery && todaysPicks.length > 0) {
+        picksSection.classList.remove('hidden');
+        const picksHtml = todaysPicks.map((app, idx) => `
+          <div onclick="navigate('details', '${app.id}')" class="group relative overflow-hidden rounded-[2.5rem] cursor-pointer isolate flex flex-col justify-end min-h-[380px] shadow-2xl transition-all duration-300 hover:-translate-y-1 bg-black dark:bg-slate-900 border border-slate-800">
+            ${app.visibility === 'private' ? '<div class="absolute top-6 right-6 bg-slate-900/80 backdrop-blur-md text-white px-3 py-1.5 rounded-full border border-white/10 z-30 text-xs font-bold flex items-center gap-1.5"><i class="ph-fill ph-lock-key"></i> Private</div>' : ''}
+            <div class="absolute inset-0 ${app.bgClass} opacity-30 z-10 group-hover:opacity-40 transition-opacity duration-700"></div>
+            
+            <div class="relative z-20 p-8 sm:p-10 w-full flex flex-col h-full justify-between">
+              <div class="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-widest border border-white/10 w-fit mb-6">
+                <i class="ph-fill ph-star text-yellow-400"></i>
+                ${idx === 0 ? 'App of the Day' : 'Editors Choice'}
+              </div>
+              
+              <div>
+                <div class="flex items-center gap-5 mb-5 mt-auto">
+                  ${app.icon ? 
+                    `<img src="${app.icon}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-[1.2rem] shadow-xl border-2 border-white/10 object-cover" />`
+                    :
+                    `<div class="w-16 h-16 sm:w-20 sm:h-20 rounded-[1.2rem] shadow-xl border-2 border-white/10 flex items-center justify-center text-white ${app.bgClass}">
+                      <i class="${app.iconClass} text-3xl sm:text-4xl"></i>
+                    </div>`
+                  }
+                  <div>
+                    <h3 class="text-3xl sm:text-4xl font-black text-white tracking-tighter drop-shadow-lg">${app.title}</h3>
+                    <p class="text-indigo-300 font-medium">${app.category}</p>
+                  </div>
+                </div>
+                <p class="text-slate-200 text-base sm:text-lg line-clamp-2 max-w-lg leading-relaxed mb-6">${app.description}</p>
+                <button class="bg-white/10 backdrop-blur-md hover:bg-white text-white hover:text-slate-900 border border-white/20 px-6 py-3 rounded-xl font-bold transition-all duration-300 w-fit">View Details</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+        document.getElementById('picks-container').innerHTML = picksHtml;
+      } else {
+        picksSection.classList.add('hidden');
+      }
+
+      document.getElementById('grid-title').textContent = searchQuery ? 'Search Results' : 'Trending Now';
+      const gridHtml = filtered.map((app, i) => `
+        <div onclick="navigate('details', '${app.id}')" class="flex flex-col items-start group cursor-pointer animate-fade-in" style="animation-delay: ${i * 30}ms; animation-fill-mode: both;">
+          <div class="w-full aspect-square rounded-[2rem] overflow-hidden mb-4 shadow-[0_8px_20px_rgba(0,0,0,0.06)] group-hover:shadow-[0_15px_30px_rgba(99,102,241,0.2)] transition-all duration-300 group-hover:-translate-y-2 relative border bg-white border-slate-100 dark:bg-slate-800 dark:border-slate-700">
+            ${app.visibility === 'private' ? '<div class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-md text-white p-2 rounded-full border border-white/10 z-30"><i class="ph-fill ph-lock-key text-sm"></i></div>' : ''}
+            ${app.icon ? 
+              `<img src="${app.icon}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />`
+              :
+              `<div class="w-full h-full flex items-center justify-center ${app.bgClass} text-white transition-transform duration-500 group-hover:scale-110">
+                <i class="${app.iconClass} text-[4rem]"></i>
+               </div>`
+            }
+            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300"></div>
+          </div>
+          <h3 class="font-bold text-lg line-clamp-1 w-full group-hover:text-indigo-500 transition-colors text-slate-900 dark:text-white">${app.title}</h3>
+          <p class="text-sm font-medium text-slate-500 line-clamp-1 w-full mb-1">${app.developer}</p>
+          <div class="flex items-center gap-1 text-sm font-bold text-slate-500 dark:text-slate-300">
+            <span>${app.rating}</span>
+            <i class="ph-fill ph-star text-yellow-400"></i>
+          </div>
+        </div>
+      `).join('');
+      document.getElementById('grid-container').innerHTML = gridHtml;
+    }
+
+    function renderDetails(appId) {
+      const app = apps.find(a => a.id === appId);
+      if (!app) return;
+
+      const isInstalled = installedApps.has(app.id);
+      
+      const payloadInfo = app.payloadType === 'url' 
+        ? { icon: 'ph-globe', title: 'Web Link Attached', desc: "This app connects to an external website. Opening it will launch a new secure tab directly to the publisher's destination." }
+        : { icon: 'ph-code', title: 'Sandboxed Native Execution', desc: "This app runs completely inside the App Store via a sandboxed player. It operates in a null-origin environment, meaning it cannot access your data, external storage, or the App Store's database." };
+
+      const detailsHtml = `
+        <div class="max-w-5xl mx-auto">
+          <button onclick="navigate('home')" class="mb-8 flex items-center gap-2 transition-colors font-bold group px-4 py-2 rounded-full shadow-sm w-fit hover:shadow-md bg-white text-slate-500 hover:text-indigo-600 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-white border border-slate-100 dark:border-slate-800">
+            <i class="ph ph-caret-left text-xl group-hover:-translate-x-1 transition-transform"></i> Back
+          </button>
+
+          <div class="rounded-[3rem] shadow-[0_20px_60px_rgba(0,0,0,0.05)] border overflow-hidden relative bg-white border-slate-100 dark:bg-slate-900 dark:border-slate-800">
+            <div class="absolute top-0 inset-x-0 h-64 overflow-hidden opacity-20 pointer-events-none ${app.icon ? '' : app.bgClass}">
+               ${app.icon ? `<img src="${app.icon}" class="w-full h-full object-cover blur-[100px] scale-150" />` : ''}
+               <div class="absolute inset-0 bg-gradient-to-b from-transparent to-white dark:to-slate-900"></div>
+            </div>
+
+            <div class="p-8 sm:p-12 relative z-10">
+              <div class="flex flex-col sm:flex-row gap-8 items-start sm:items-center mb-12">
+                ${app.icon ? 
+                  `<img src="${app.icon}" class="w-36 h-36 sm:w-48 sm:h-48 rounded-[2.5rem] shadow-2xl object-cover flex-shrink-0 border-4 border-white dark:border-slate-800" />`
+                  :
+                  `<div class="w-36 h-36 sm:w-48 sm:h-48 rounded-[2.5rem] shadow-2xl flex-shrink-0 border-4 border-white dark:border-slate-800 flex items-center justify-center text-white ${app.bgClass}">
+                    <i class="${app.iconClass} text-[5rem] sm:text-[7rem]"></i>
+                   </div>`
+                }
+                <div class="flex-1 w-full">
+                  <h1 class="text-4xl sm:text-5xl font-black mb-2 tracking-tight text-slate-900 dark:text-white">
+                    ${app.title}
+                    ${app.visibility === 'private' ? '<i class="ph-fill ph-lock-key text-2xl sm:text-3xl text-slate-400 ml-2 align-middle" title="Private App"></i>' : ''}
+                  </h1>
+                  <p class="text-xl text-indigo-500 font-bold mb-6">${app.developer}</p>
+                  
+                  <div class="flex flex-wrap gap-6 text-slate-600 mb-8">
+                    <div class="flex flex-col items-center justify-center rounded-2xl px-5 py-3 border min-w-[100px] bg-slate-50 border-slate-100 dark:bg-slate-800/50 dark:border-slate-700">
+                      <span class="text-lg font-black flex items-center gap-1 text-slate-900 dark:text-white">
+                        ${app.rating} <i class="ph-fill ph-star text-yellow-400"></i>
+                      </span>
+                      <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">${app.reviews} Ratings</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center rounded-2xl px-5 py-3 border min-w-[100px] bg-slate-50 border-slate-100 dark:bg-slate-800/50 dark:border-slate-700">
+                      <span class="text-lg font-black text-slate-900 dark:text-white">${app.category}</span>
+                      <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Category</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center rounded-2xl px-5 py-3 border min-w-[100px] bg-slate-50 border-slate-100 dark:bg-slate-800/50 dark:border-slate-700">
+                      <span class="text-lg font-black text-slate-900 dark:text-white">${app.size}</span>
+                      <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Size</span>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col sm:flex-row gap-4">
+                    ${!isInstalled ? `
+                      <button onclick="installApp('${app.id}')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-xl hover:shadow-indigo-500/30 hover:-translate-y-1 active:translate-y-0 flex-1 sm:flex-none flex items-center justify-center gap-2">
+                        <i class="ph ph-cloud-arrow-down text-2xl"></i> Get App
+                      </button>
+                    ` : `
+                      <button onclick="runApp('${app.id}')" class="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-xl shadow-indigo-500/30 hover:-translate-y-1 active:translate-y-0 flex-1 sm:flex-none flex items-center justify-center gap-2">
+                        <i class="ph-fill ph-play text-xl"></i> Open App
+                      </button>
+                    `}
+                    <button onclick="downloadApp('${app.id}')" class="px-6 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-1 active:translate-y-0 flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white">
+                      <i class="ph ph-download-simple text-xl"></i> Download
+                    </button>
+                    ${(currentUser && app.authorId === currentUser.uid) || (!db && !defaultApps.some(da => da.id === app.id)) ? `
+                      <button onclick="navigate('upload', '${app.id}')" class="px-6 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-1 active:translate-y-0 flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white" title="Edit App">
+                        <i class="ph ph-pencil-simple text-xl"></i> Edit
+                      </button>
+                      <button onclick="deleteApp('${app.id}')" class="px-6 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-1 active:translate-y-0 flex-1 sm:flex-none flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-400" title="Delete App">
+                        <i class="ph ph-trash text-xl"></i>
+                      </button>
+                    ` : ''}
+                  </div>
+                </div>
+              </div>
+
+              <hr class="mb-10 border-slate-100 dark:border-slate-800" />
+
+              ${app.screenshots && app.screenshots.length > 0 ? `
+                <div class="mb-12">
+                  <h3 class="text-2xl font-black mb-6 tracking-tight text-slate-900 dark:text-white">Preview</h3>
+                  <div class="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory hide-scrollbar">
+                    ${app.screenshots.map(img => `
+                      <img src="${img}" class="h-72 sm:h-96 w-auto rounded-[2rem] object-cover shadow-[0_10px_30px_rgba(0,0,0,0.08)] snap-center border hover:scale-[1.02] transition-transform duration-300 cursor-pointer border-slate-100 dark:border-slate-800" />
+                    `).join('')}
+                  </div>
+                </div>
+              ` : ''}
+
+              <div class="mb-10 max-w-3xl">
+                <h3 class="text-2xl font-black mb-4 tracking-tight text-slate-900 dark:text-white">About</h3>
+                <p class="text-lg leading-relaxed whitespace-pre-line font-medium text-slate-600 dark:text-slate-300">${app.description}</p>
+              </div>
+
+              <div class="p-6 rounded-[2rem] border flex gap-5 items-start max-w-3xl bg-indigo-50/50 border-indigo-100 dark:bg-indigo-950/30 dark:border-indigo-900/50">
+                <div class="p-3 rounded-2xl shadow-sm text-indigo-500 flex-shrink-0 bg-white dark:bg-slate-900">
+                  <i class="ph ${payloadInfo.icon} text-3xl"></i>
+                </div>
+                <div>
+                  <h4 class="font-bold text-lg mb-1 text-slate-900 dark:text-white">${payloadInfo.title}</h4>
+                  <p class="font-medium text-slate-600 dark:text-slate-400">${payloadInfo.desc}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      views.details.innerHTML = detailsHtml;
+    }
+
+    window.installApp = (appId) => {
+      installedApps.add(appId);
+      renderDetails(appId);
+    };
+
+    // --- APP EXECUTION PLAYER LOGIC ---
+    let currentBlobUrl = null;
+
+    window.runApp = (appId) => {
+      const app = apps.find(a => a.id === appId);
+      if (app.payloadType === 'url' && app.appUrl) {
+        window.open(app.appUrl, '_blank', 'noopener,noreferrer');
+      } else if (app.payloadType === 'code' && app.code) {
+        // Create isolated blob for native HTML payload
+        const blob = new Blob([app.code], { type: 'text/html' });
+        currentBlobUrl = URL.createObjectURL(blob);
+        
+        // Setup Player UI
+        document.getElementById('player-app-title').textContent = app.title;
+        const iframe = document.getElementById('app-iframe');
+        iframe.src = currentBlobUrl;
+        
+        // Show Player Overlay
+        const player = document.getElementById('view-player');
+        player.classList.remove('hidden');
+        player.classList.add('flex');
+        
+        // Prevent background scrolling
+        document.body.style.overflow = 'hidden';
+
+        setTimeout(() => player.classList.remove('opacity-0'), 10);
+      }
+    };
+
+    window.closeAppPlayer = () => {
+      const player = document.getElementById('view-player');
+      player.classList.add('opacity-0');
+      
+      setTimeout(() => {
+        player.classList.remove('flex');
+        player.classList.add('hidden');
+        document.body.style.overflow = ''; // Restore background scroll
+        
+        const iframe = document.getElementById('app-iframe');
+        iframe.src = ''; // Clean up memory
+        if (currentBlobUrl) {
+          URL.revokeObjectURL(currentBlobUrl);
+          currentBlobUrl = null;
+        }
+      }, 300);
+    };
+
+    window.expandAppPlayer = () => {
+      if (currentBlobUrl) {
+        window.open(currentBlobUrl, '_blank');
+      }
+    };
+
+    window.downloadApp = (appId) => {
+      const app = apps.find(a => a.id === appId);
+      if (!app) return;
+
+      let fileContent = '';
+      if (app.payloadType === 'url' && app.appUrl) {
+        fileContent = `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=${app.appUrl}"></head><body>Redirecting to ${app.appUrl}...</body></html>`;
+      } else if (app.payloadType === 'code' && app.code) {
+        fileContent = app.code;
+      } else {
+        return; 
+      }
+
+      const safeTitle = app.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const filename = `${safeTitle}.html`;
+
+      const blob = new Blob([fileContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    window.deleteApp = async (targetAppId) => {
+      if (document.getElementById('delete-modal')) return;
+      
+      const modalHtml = `
+        <div id="delete-modal" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm px-4">
+          <div class="bg-white dark:bg-slate-900 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-slate-100 dark:border-slate-800 animate-zoom-in">
+            <h3 class="text-2xl font-black mb-2 text-slate-900 dark:text-white">Delete App?</h3>
+            <p class="text-slate-500 mb-8 font-medium">Are you sure you want to permanently delete this app? This action cannot be undone.</p>
+            <div class="flex gap-4">
+              <button id="cancel-delete" class="flex-1 px-4 py-3 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white transition-colors">Cancel</button>
+              <button id="confirm-delete" class="flex-1 px-4 py-3 rounded-xl font-bold bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30 transition-all">Delete</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      document.getElementById('cancel-delete').addEventListener('click', () => {
+        document.getElementById('delete-modal').remove();
+      });
+
+      document.getElementById('confirm-delete').addEventListener('click', async () => {
+        const btn = document.getElementById('confirm-delete');
+        btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i>';
+        btn.disabled = true;
+        try {
+          if (db) {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'uploaded_apps', targetAppId));
+          } else {
+            // Static GitHub Pages in-memory removal
+            apps = apps.filter(a => a.id !== targetAppId);
+            renderHome();
+          }
+          document.getElementById('delete-modal').remove();
+          navigate('home');
+        } catch (err) {
+          console.error("Error deleting app:", err);
+          btn.innerHTML = 'Error';
+        }
+      });
+    };
+
+    // --- UPLOAD FORM LOGIC ---
+    const btnPayloadCode = document.getElementById('btn-payload-code');
+    const btnPayloadUrl = document.getElementById('btn-payload-url');
+    const containerCode = document.getElementById('payload-code-container');
+    const containerUrl = document.getElementById('payload-url-container');
+    const inputCode = document.getElementById('app-code');
+    const inputUrl = document.getElementById('app-url');
+
+    function updatePayloadToggleUI() {
+      const activeClasses = ['shadow-md', 'transform', 'scale-100', 'bg-white', 'text-slate-900', 'dark:bg-slate-700', 'dark:text-white'];
+      const inactiveClasses = ['scale-95', 'text-slate-500', 'hover:text-slate-700', 'hover:bg-slate-200/50', 'dark:text-slate-400', 'dark:hover:text-slate-200', 'dark:hover:bg-slate-700/50'];
+      
+      if (payloadType === 'code') {
+        btnPayloadCode.classList.remove(...inactiveClasses);
+        btnPayloadCode.classList.add(...activeClasses);
+        btnPayloadUrl.classList.remove(...activeClasses);
+        btnPayloadUrl.classList.add(...inactiveClasses);
+        containerCode.classList.remove('hidden');
+        containerUrl.classList.add('hidden');
+        inputCode.required = true;
+        inputUrl.required = false;
+      } else {
+        btnPayloadUrl.classList.remove(...inactiveClasses);
+        btnPayloadUrl.classList.add(...activeClasses);
+        btnPayloadCode.classList.remove(...activeClasses);
+        btnPayloadCode.classList.add(...inactiveClasses);
+        containerUrl.classList.remove('hidden');
+        containerCode.classList.add('hidden');
+        inputUrl.required = true;
+        inputCode.required = false;
+      }
+    }
+
+    btnPayloadCode.addEventListener('click', () => { payloadType = 'code'; updatePayloadToggleUI(); });
+    btnPayloadUrl.addEventListener('click', () => { payloadType = 'url'; updatePayloadToggleUI(); });
+
+    const readFileAsDataURL = (file) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    };
+
+    document.getElementById('app-icon-input').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        iconPreviewBase64 = await readFileAsDataURL(file);
+        document.getElementById('icon-preview').src = iconPreviewBase64;
+        document.getElementById('icon-preview').classList.remove('hidden');
+        document.getElementById('icon-placeholder').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('app-screenshots-input').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []).slice(0, 3);
+      if (files.length > 0) {
+        screenshotsBase64 = await Promise.all(files.map(readFileAsDataURL));
+        const previewContainer = document.getElementById('screenshots-preview');
+        previewContainer.innerHTML = screenshotsBase64.map(src => 
+          `<img src="${src}" class="h-32 w-auto rounded-2xl object-cover shadow-md border border-slate-200 dark:border-slate-700" />`
+        ).join('');
+        previewContainer.classList.remove('hidden');
+        document.getElementById('screenshots-placeholder').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('upload-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const submitBtn = document.getElementById('btn-submit');
+      submitBtn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Publishing...';
+      submitBtn.disabled = true;
+
+      try {
+        const appData = {
+          title: document.getElementById('app-title').value,
+          developer: document.getElementById('app-developer').value,
+          category: document.getElementById('app-category').value,
+          visibility: document.getElementById('app-visibility').value,
+          description: document.getElementById('app-description').value,
+          payloadType,
+          appUrl: payloadType === 'url' ? inputUrl.value : null,
+          code: payloadType === 'code' ? inputCode.value : null,
+          icon: iconPreviewBase64 || null,
+          screenshots: screenshotsBase64
+        };
+
+        if (db && currentUser) {
+          // Cloud Database Sync
+          if (editingAppId) {
+            const appRef = doc(db, 'artifacts', appId, 'public', 'data', 'uploaded_apps', editingAppId);
+            await updateDoc(appRef, appData);
+          } else {
+            const appsRef = collection(db, 'artifacts', appId, 'public', 'data', 'uploaded_apps');
+            await addDoc(appsRef, {
+              ...appData,
+              rating: '0.0',
+              reviews: '0',
+              size: payloadType === 'url' ? 'Link' : '1 MB',
+              price: 'Free',
+              bgClass: 'bg-gradient-to-br from-indigo-500 to-purple-600',
+              iconClass: 'ph-fill ph-app-window',
+              createdAt: Date.now(),
+              authorId: currentUser.uid
+            });
+          }
+        } else {
+          // Local GitHub Pages Mode (In-Memory Array Sync)
+          if (editingAppId) {
+            const index = apps.findIndex(a => a.id === editingAppId);
+            if (index > -1) {
+              apps[index] = { ...apps[index], ...appData };
+            }
+          } else {
+            const newApp = {
+              id: 'local-' + Date.now(),
+              ...appData,
+              rating: '0.0',
+              reviews: '0',
+              size: payloadType === 'url' ? 'Link' : '1 MB',
+              price: 'Free',
+              bgClass: 'bg-gradient-to-br from-indigo-500 to-purple-600',
+              iconClass: 'ph-fill ph-app-window',
+              createdAt: Date.now(),
+              authorId: 'local-user'
+            };
+            apps.unshift(newApp);
+            renderHome(); 
+          }
+        }
+
+        e.target.reset();
+        editingAppId = null;
+        iconPreviewBase64 = null;
+        screenshotsBase64 = [];
+        document.getElementById('icon-preview').classList.add('hidden');
+        document.getElementById('icon-placeholder').classList.remove('hidden');
+        document.getElementById('screenshots-preview').classList.add('hidden');
+        document.getElementById('screenshots-placeholder').classList.remove('hidden');
+        payloadType = 'code';
+        updatePayloadToggleUI();
+        
+        window.navigate('home');
+      } catch (err) {
+        console.error("Upload error:", err);
+      } finally {
+        submitBtn.innerHTML = '<i class="ph-fill ph-lightning text-xl"></i> Publish App';
+        submitBtn.disabled = false;
+      }
+    });
+
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+    });
+
+    // --- ADMIN EASTER EGG ---
+    let secretBuffer = '';
+    const secretCode = '07312012';
+    
+    document.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+      
+      secretBuffer += e.key;
+      if (secretBuffer.length > secretCode.length) {
+        secretBuffer = secretBuffer.slice(-secretCode.length);
+      }
+      
+      if (secretBuffer === secretCode) {
+        secretBuffer = '';
+        navigate('admin');
+      }
+    });
+
+    window.renderAdmin = () => {
+      const adminList = document.getElementById('admin-apps-list');
+      adminList.innerHTML = apps.map(app => {
+        const isDefault = defaultApps.some(da => da.id === app.id);
+        return `
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors group">
+          <td class="p-6 font-bold text-slate-900 dark:text-white flex items-center gap-4">
+            ${app.icon ? `<img src="${app.icon}" class="w-10 h-10 rounded-xl object-cover shadow-sm">` : `<div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-500 flex items-center justify-center shadow-sm"><i class="${app.iconClass} text-xl"></i></div>`}
+            <div>
+              <div class="line-clamp-1">${app.title}</div>
+              <div class="text-xs font-medium text-slate-400 font-mono">${app.id}</div>
+            </div>
+          </td>
+          <td class="p-6 text-slate-600 dark:text-slate-300 font-medium">${app.developer}</td>
+          <td class="p-6 text-slate-600 dark:text-slate-300">
+            <span class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-bold uppercase tracking-wider">${app.payloadType}</span>
+          </td>
+          <td class="p-6 text-slate-600 dark:text-slate-300">
+            ${app.visibility === 'private' ? '<span class="text-amber-500 flex items-center gap-1"><i class="ph-fill ph-lock-key"></i> Private</span>' : '<span class="text-emerald-500 flex items-center gap-1"><i class="ph-fill ph-globe"></i> Public</span>'}
+          </td>
+          <td class="p-6 text-right">
+            ${isDefault ? 
+              `<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">System App</span>` 
+              : 
+              `<button id="admin-del-${app.id}" onclick="adminDeleteApp('${app.id}')" class="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-4 py-2 rounded-xl font-bold transition-all opacity-0 group-hover:opacity-100">Delete</button>`
+            }
+          </td>
+        </tr>
+      `}).join('');
+    };
+
+    window.adminDeleteApp = async (targetAppId) => {
+      const btn = document.getElementById(`admin-del-${targetAppId}`);
+      if(btn) { 
+        btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i>'; 
+        btn.disabled = true; 
+      }
+      
+      try {
+        if (db) {
+          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'uploaded_apps', targetAppId));
+        } else {
+          apps = apps.filter(a => a.id !== targetAppId);
+        }
+        setTimeout(() => renderAdmin(), 500); 
+      } catch (err) {
+        console.error("Admin delete error:", err);
+        if(btn) { btn.innerHTML = 'Error'; }
+      }
+    };
+
+    // Initial Render
+    renderHome();
+
+  </script>
+</body>
+</html>
